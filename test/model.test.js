@@ -1,0 +1,6 @@
+import test from "node:test";import assert from "node:assert/strict";
+import {createWorld,parameters,step,brakeCar,gapAhead,metrics,LENGTH} from "../dist/src/model.js";
+test("deterministic initialization and SI-derived metrics",()=>{const a=createWorld({count:20}),b=createWorld({count:20});assert.deepEqual(a,b);const m=metrics(a);assert.equal(m.slow,0);assert.ok(Math.abs(m.flow-20*m.speed/LENGTH*1000)<1e-9);});
+test("dense braking stays finite, nonnegative and collision-free",()=>{const w=createWorld({count:60,timeGap:2.5});brakeCar(w,5);for(let k=0;k<2200;k++){step(w);for(let i=0;i<w.cars.length;i++){const c=w.cars[i];assert.ok(Number.isFinite(c.x)&&c.x>=0&&c.x<LENGTH);assert.ok(Number.isFinite(c.v)&&c.v>=0);assert.ok(gapAhead(w,i)>=.19999);}}assert.ok(w.history.length<=240);});
+test("braking lowers selected car speed and expires",()=>{const w=createWorld({count:18}),before=w.cars[0].v;brakeCar(w,0);for(let k=0;k<20;k++)step(w);assert.ok(w.cars[0].v<before-3);for(let k=0;k<60;k++)step(w);assert.equal(w.brake,null);});
+test("invalid controls and indices reject before mutation",()=>{assert.throws(()=>parameters({count:12.5}));assert.throws(()=>parameters({speed:200}));const w=createWorld(),copy=structuredClone(w);assert.throws(()=>brakeCar(w,undefined));assert.throws(()=>brakeCar(w,100));assert.deepEqual(w,copy);assert.throws(()=>step(w,1));});
