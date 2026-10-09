@@ -6,6 +6,29 @@ traffic-lab: model source and focused tests, static asset/syntax checks, browser
 
 ## Evidence
 
+### 정책 저장·재생·구간 비교 / 2026-10-09 / LOCAL ONLY
+
+- Source scope: traffic-lab **VERIFIED** — 시작 시 git status clean. 파일 목록과 architecture.md, README.md, docs/decisions.md, docs/verification.md, 모델·도전·UI·HTML·CSS, 기존 테스트, 도구·package·속성·workflow·ignore를 전문 확인했습니다. api-spec.md / requirements.md / 저장소 AGENTS.md는 없음. 우선순위에 따라 architecture와 결정을 먼저 읽고 수정했습니다. 형제 디렉터리는 15개 서비스 ID whitelist 확인을 위한 이름 목록만 조회했으며 다른 앱의 파일은 읽거나 수정하지 않았습니다. 전달된 사용자 지침을 적용했습니다.
+- LOCAL_MODEL / LOCAL_STORAGE: Node v22.23.2, npm 11.12.0, `npm test` **39/39 통과**. 기존 21개 테스트와 모델 계산/목표를 유지합니다. 정책 export/parse/full replay가 실제 수동 입력 실행과 완전히 동일하며 기존 시드 4 결과를 1e-8 오차 이하로 고정 회귀 검사했습니다. 세 도전의 명시적 합법 성공 경로, 무개입 실패, 중간 실패가 최종 목표로 덮이지 않음을 포함합니다.
+- LOCAL_POLICY: 정확한 버전/키/캠페인/도전/시드, 정수 tick, 최대 6개, 예산, 중첩, 역순, 시작 시각 범위, NaN/Infinity/문자 숫자, 잘못된 duration, 최종 상태/결과 주입, 비 JSON/4 KB 초과 및 UTF-8 byte 한도를 검사했습니다. 기존 종료 직전 개입도 그대로 허용하고 전체 비용을 사용하며 도전 종료 때 계산을 멈춥니다. 해당 실제 수동 입력과 저장 정책 재생도 완전히 일치합니다. 재생은 정수 tick 입력을 처음부터 적용하며 종료 후 멈춥니다.
+- LOCAL_MEASUREMENT: 두 도로 차량의 실제 위치 wraparound를 독립 관측하여 최근 60초 검지기 통과/처리량과 일치 확인. 단계 끝 속도에서 정지/시간 손실을 별도 합산해 모델 집계와 1e-7 이하 일치 확인. 표는 거리 기반 흐름, 검지기 통과, 처리량, 정지 대·초, 원래 도전 희망 속도 기준 손실 대·초를 구별합니다.
+- LOCAL_DURABILITY: 메모리 storage test double로 최대 10개/중복/초과 무변경 거절/선택 삭제/전체 삭제/잘못된 private store/차단·quota를 검사했습니다. import/replay는 독립 완료를 만들지 않음, 저장된 독립 정책도 full replay 실패 시 완료 0, 세 도전 실제 입력의 완료 3/3, 삭제 후 감소 확인. 최소 shared aggregate의 15 IDs/범위/ISO/크기/extra-field 거절, 다른 앱 기록과 무관한 private key 보존, malformed aggregate는 무변경 실패이며 자체 정책 성공과 별도 보고됨을 검사했습니다. 이는 실제 브라우저 localStorage 증거와 구별합니다.
+- LOCAL_STATIC: `npm run check` 공개 파일 **9개**의 구문·참조·UI IDs/labels·CSP 및 관련 소스/문서/테스트/도구 UTF-8 without BOM·CRLF 통과. `git diff --check` 통과. 기존 검사·테스트를 약화하거나 제거하지 않았고 실행 의존성·네트워크·순위·백엔드를 추가하지 않았습니다.
+- BROWSER_LOCAL / RESPONSIVE_LOCAL / WebMCP_LOCAL / SCREENSHOT / GALLERY_INTEGRATION: **NOT_RUN (이번 변경)**. 메인 담당자 책임입니다. 아래 이전 버전의 브라우저 기록은 이번 증거가 아닙니다.
+- REMOTE_CI / PUBLIC_SITE: **NOT_RUN (이번 변경)**. commit/push/provisioning/account access 없음. 수정은 traffic-lab에만 적용했습니다.
+
+#### 메인 실제 화면·동작 인계
+
+`npm run dev -- 0`으로 제공되는 로컬 주소를 사용합니다. 모델 성공/차이를 실제로 표시한 뒤 비교표와 정책 저장 영역을 각각 캡처하거나 전체 페이지를 캡처하세요. 콘솔에서 점수·완료 플래그를 주입하지 않습니다.
+
+1. **직접 성공 및 완료 저장:** wave, 시드 4 → 새 도전 준비 → 60 km/h·2.2초·60초 개입 → 10초 진행 12회(120초) → 60 km/h·0.7초·60초 개입 → 10초 진행 6회(180초). 종료 후 중간 통과·목표 달성, 0/4점, 저장 정책 1/10개, 상태 `직접 완료 1 / 3 · 정책 저장됨` 확인. `web-lab-progress-v1`의 자체 record는 completed 1, total 3, 실제 ISO updatedAt 세 필드만 있어야 합니다.
+2. **의미 있는 결과 화면:** 종료 비교표의 내/무개입 흐름은 2284 / 1603, 검지기 구간 통과 42 / 10대, 처리량 2520 / 600대/시간, 정지 0.0 / 1211.0대·초, 시간 손실 1737.9 / 2078.5대·초. 평균 속도 47.6 / 33.4 km/h, 편차 7.0 / 38.3 km/h. 비교표·관측 차이·개입 기록과 저장 영역을 실제 화면에 포함합니다. 이는 시드 4 모델 결과입니다.
+3. **저장 지속·재생:** 선택 내보내기로 실제 JSON 다운로드 → 새로고침하여 현재 도전 0초, 저장 목록 유지 확인 → 선택 정책 재생 → 10초 진행 18회. 같은 mission/seed, 자동 입력 0초·120초, 동일 목표/표/기록 확인. 재생 동안 개입 버튼 잠김, 무개입 결과 보존, 직접 완료 수는 1 유지. `처음부터`는 같은 시드로 수동 도전을 준비합니다.
+4. **가져오기는 완료 아님:** 저장 정책·완료 기록 전체 삭제 → 방금 내보낸 JSON 가져오기 → 1/10개 → 선택 정책 재생 → 180초까지 진행. 모델은 목표 달성하지만 갤러리 자체 완료 record는 없어야 합니다. 새 도전 준비 후 직접 성공해야 완료가 생깁니다. 가져오기/삭제가 다른 앱 summary를 바꾸지 않는지도 기존 실제 peer record가 있을 때 확인합니다.
+5. **잘못된 입력·한도:** 내보낸 파일의 action tick을 소수/음수로 바꾸거나 action 중첩, duration 45, 예산 초과, unknown mission, terminal `result` 필드를 넣은 파일, 4 KB 초과 파일을 가져옵니다. 오류 상태만 나타나고 현재 도로/기존 저장 목록이 바뀌지 않아야 합니다. 서로 다른 유효 시드로 10개 저장 후 11번째는 기존 항목을 축출하지 않고 거절하며 선택 삭제 후 다시 저장할 수 있어야 합니다. 전체 삭제는 자체 정책과 자체 완료 summary만 지웁니다.
+6. **관측 차이 부호:** wave 시드 4 대표 경로의 90초 checkpoint는 내 흐름 2619 / 무개입 1886이지만 checkpoint 검지기 통과 13 / 15입니다(Node 모델 증거). 해당 시점의 UI 최근 구간은 60초이므로 checkpoint의 20초 통과 수와 혼동하지 않습니다. 비교 feedback는 UI에 표시된 동일 구간 관측값만 단순 차이로 표시해야 합니다.
+7. **기존 기능·접근성:** free 모드 슬라이더·프리셋·3초 제동 유지. 재생 속도/일시 정지/10초 진행, 탭 숨김, 320/390 px·데스크톱 넘침/표·파일 input·키보드 focus 확인. 저장 차단 시 계산은 동작하며 완료 저장 실패 상태를 표시해야 합니다. 지원 브라우저의 WebMCP `intervene_traffic`도 정책 재생 중 거절해야 합니다. 브라우저 결과는 실행 후 메인 담당자가 별도 기록합니다.
+
 ### 도전 업그레이드 / 2026-10-09 / LOCAL ONLY
 
 - Source scope: 지정 저장소 VERIFIED — 파일 목록을 확인하고 architecture.md, README.md, docs/decisions.md, docs/verification.md, package.json, .gitattributes, 기존 모델/UI/HTML/CSS, 기존 테스트와 검사/서버 도구를 전문 읽었습니다. api-spec.md와 requirements.md는 존재하지 않습니다. workflow와 .gitignore도 확인했으며 .git 내부 객체는 소스 검토 대상이 아닙니다. 다른 저장소/갤러리는 범위 밖입니다.

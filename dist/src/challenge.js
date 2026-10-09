@@ -4,15 +4,15 @@ import {number,rng} from "./ui.js";
 // All schedules, scoring and interventions live here, without DOM or wall time.
 export const MISSIONS=Object.freeze([
   {id:"wave",name:"01 · 파동을 흡수하라",duration:180,budget:4,
-    description:"붐비는 도로에 두 번의 급제동. 처음부터 빨리 달릴까요, 파동이 번질 때 여유를 줄까요? 마지막 60초의 흐름과 속도 편차를 함께 지키세요.",
+    description:"20·55초 급제동. 중간 회복과 최종 60초 흐름·편차 목표를 달성하세요.",
     p:{count:48,speed:120,timeGap:.7},events:[{at:20,type:"brake"},{at:55,type:"brake"}],
     checkpoint:{at:90,flow:1500,spread:25},targets:{flow:2000,spread:10,gain:1.25}},
   {id:"bottleneck",name:"02 · 병목 뒤의 회복",duration:240,budget:6,
-    description:"420–580 m 구간에 35 km/h 제한이 생깁니다. 100초에 제한이 풀린 뒤 대열을 회복하세요. 짧은 차간 시간은 흐름을 높이지만 파동도 키울 수 있습니다.",
+    description:"20–100초, 420–580 m 구간의 희망 속도 35 km/h. 65초 급제동 후 회복하세요.",
     p:{count:44,speed:110,timeGap:1.5},events:[{at:20,type:"zone",speed:35},{at:65,type:"brake"},{at:100,type:"clear"}],
     checkpoint:{at:160,flow:1800,spread:12},targets:{flow:2000,spread:6,gain:1.25}},
   {id:"echo",name:"03 · 세 번의 충격",duration:240,budget:5,
-    description:"60대의 고밀도 순환도로. 서로 다른 차량의 세 번 제동에 대응하면서 한정된 개입 시간을 배분하세요. 최종 흐름, 대열 안정성과 무개입 대비 개선을 모두 요구합니다.",
+    description:"60대, 25·80·140초 급제동. 예산 안에서 중간·최종 목표를 달성하세요.",
     p:{count:60,speed:120,timeGap:1.8},events:[{at:25,type:"brake"},{at:80,type:"brake"},{at:140,type:"brake"}],
     checkpoint:{at:120,flow:1600,spread:8},targets:{flow:2000,spread:10,gain:1.50}}
 ].map(m=>Object.freeze({...m,p:Object.freeze(m.p),checkpoint:Object.freeze(m.checkpoint),targets:Object.freeze(m.targets),events:Object.freeze(m.events.map(e=>Object.freeze(e)))})));
@@ -60,12 +60,16 @@ export function advanceChallenge(run) {
   while(run.eventIndex<run.events.length&&time+1e-9>=run.events[run.eventIndex].at){
     const event=run.events[run.eventIndex++];applyEvent(run.world,event);applyEvent(run.baseline,event);
   }
-  const before=run.world.distance,baseBefore=run.baseline.distance;
+  const before=run.world.distance,baseBefore=run.baseline.distance,passes=run.world.passes,basePasses=run.baseline.passes;
   step(run.world);step(run.baseline);run.tick++;
   // Integral of actual movement, not an instantaneous speed snapshot.
   run.samples.push({distance:run.world.distance-before,baseDistance:run.baseline.distance-baseBefore,
     speed:metrics(run.world).speed,baseSpeed:metrics(run.baseline).speed,spread:spread(run.world),baseSpread:spread(run.baseline),
-    slow:metrics(run.world).slow,baseSlow:metrics(run.baseline).slow});
+    slow:metrics(run.world).slow,baseSlow:metrics(run.baseline).slow,
+    passes:run.world.passes-passes,basePasses:run.baseline.passes-basePasses,
+    stopped:run.world.cars.filter(c=>c.v<.1).length*DT,baseStopped:run.baseline.cars.filter(c=>c.v<.1).length*DT,
+    loss:run.world.cars.reduce((s,c)=>s+Math.max(0,1-c.v/(run.mission.p.speed/3.6))*DT,0),
+    baseLoss:run.baseline.cars.reduce((s,c)=>s+Math.max(0,1-c.v/(run.mission.p.speed/3.6))*DT,0)});
   if(run.samples.length>60/DT) run.samples.shift();
   if(run.active&&run.tick>=run.active.untilTick){run.world.p={...run.mission.p};run.active=null;}
   if(run.tick===run.mission.checkpoint.at/DT){
@@ -82,11 +86,13 @@ export function advanceChallenge(run) {
 export function windowMetrics(run,windowSeconds=60) {
   number(windowSeconds,1,60,"measurement window");
   const samples=run.samples.slice(-Math.round(windowSeconds/DT)),n=samples.length;
-  if(!n) return {seconds:0,flow:0,baseFlow:0,speed:0,baseSpeed:0,spread:0,baseSpread:0,slow:0,baseSlow:0,gain:0};
+  if(!n) return {seconds:0,flow:0,baseFlow:0,speed:0,baseSpeed:0,spread:0,baseSpread:0,slow:0,baseSlow:0,gain:0,passes:0,basePasses:0,detectorFlow:0,baseDetectorFlow:0,stopped:0,baseStopped:0,loss:0,baseLoss:0};
   const sum=key=>samples.reduce((total,s)=>total+s[key],0),seconds=n*DT;
   const flow=sum("distance")/LENGTH*3600/seconds,baseFlow=sum("baseDistance")/LENGTH*3600/seconds;
   return {seconds,flow,baseFlow,speed:sum("speed")/n,baseSpeed:sum("baseSpeed")/n,
-    spread:sum("spread")/n,baseSpread:sum("baseSpread")/n,slow:sum("slow")/n,baseSlow:sum("baseSlow")/n,gain:baseFlow>0?flow/baseFlow:0};
+    spread:sum("spread")/n,baseSpread:sum("baseSpread")/n,slow:sum("slow")/n,baseSlow:sum("baseSlow")/n,gain:baseFlow>0?flow/baseFlow:0,
+    passes:sum("passes"),basePasses:sum("basePasses"),detectorFlow:sum("passes")*3600/seconds,baseDetectorFlow:sum("basePasses")*3600/seconds,
+    stopped:sum("stopped"),baseStopped:sum("baseStopped"),loss:sum("loss"),baseLoss:sum("baseLoss")};
 }
 
 export function evaluateTargets(targets,measured) {

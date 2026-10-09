@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="한 차량의 급제동은 어떻게 정체가 될까? 원형 도로에서 교통 흐름을 직접 실험하세요.">
+  <meta name="description" content="1 km 단일 차로의 제동·병목과 개입 정책 비교">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>TRAFFIC LAB — 정체 연구소</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f1c940'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%2321272a' stroke-width='4'/%3E%3C/svg%3E">
@@ -11,14 +11,13 @@
 <body>
   <header class="top"><a class="brand" href="./">TRAFFIC <b>LAB</b></a><nav aria-label="사이트 링크"><a href="https://hyungminyoon1.github.io/web-lab/">WEB LAB ↗</a><a href="https://github.com/HyungminYoon1/traffic-lab" target="_blank" rel="noopener noreferrer">소스 ↗</a></nav></header>
   <main>
-    <div class="intro"><div><p class="eyebrow">TRAFFIC CONTROL / 01 KM LOOP</p><h1>빠르게 달릴까, 흐름을 지킬까.</h1><p>제동 파동과 병목에 대응하세요. 제한된 개입으로 대열을 회복하고 같은 도로의 무개입 결과를 이겨 보세요.</p></div><span class="tag">1 km · 차로 1 · 고정 0.05초</span></div>
+    <div class="intro"><h1>정체 연구소</h1><span class="tag">1 km · 단일 차로 · 0.05초 계산</span></div>
     <section class="mission-setup" aria-label="모드와 도전 준비">
       <div class="mode-switch"><button id="challengeMode" aria-pressed="true">도전</button><button id="freeMode" aria-pressed="false">자유 실험</button></div>
       <div><label for="mission">도전 선택</label><select id="mission"></select></div>
       <div><label for="seed">사건 시드 · 1–9999</label><input id="seed" type="number" min="1" max="9999" step="1" value="4"></div>
       <button id="prepare">새 도전 준비</button>
     </section>
-    <section id="briefing" class="briefing" aria-label="현재 도전 요약"><h2 id="briefTitle"></h2><p id="briefText"></p><p id="briefTargets"></p></section>
     <section class="metrics" aria-label="현재 도로 상태"><div><span>평균 속도</span><strong id="meanSpeed">0</strong><small>km/h</small></div><div><span>느린 차량</span><strong id="slowCars">0</strong><small>대 · 7.2 km/h 미만</small></div><div><span>평균 흐름</span><strong id="flow">0</strong><small>대/시간 · 모델 계산</small></div><div><span>진행 시간</span><strong id="time">0</strong><small>초</small></div></section>
     <div class="desk">
       <section class="road-panel" aria-labelledby="roadTitle">
@@ -28,46 +27,57 @@
         <div class="chart-title"><h2>평균 속도의 변화</h2><span>최근 약 120초 · 노랑: 내 도로 / 회색: 무개입</span></div>
         <canvas id="chart" width="920" height="160" role="img" aria-label="시간에 따른 평균 속도 그래프"></canvas>
         <section id="challengePanel" class="challenge-panel" aria-label="도전 목표와 비교 결과">
-          <p class="eyebrow">MISSION / SAME SEED COMPARISON</p><h2 id="missionTitle"></h2><p id="missionDescription"></p><p id="initialConditions" class="hint"></p>
+          <h2 id="missionTitle"></h2><p id="missionDescription"></p><p id="initialConditions" class="hint"></p>
           <div class="progress-label"><label for="progress">모델 진행 시간</label><output id="progressText"></output></div><progress id="progress" max="180" value="0"></progress>
           <p id="events" class="event-strip"></p>
           <h3>중간 검사 + 최종 목표</h3><p id="checkpointGoal" class="goal"></p>
           <ul class="goals"><li id="goalflow"></li><li id="goalspread"></li><li id="goalgain"></li></ul>
           <p id="outcome"></p><p id="windowLabel" class="hint"></p>
-          <div class="comparison-wrap"><table class="comparison"><caption>동일한 출발 상태·사건 / 개입 여부만 다른 두 도로</caption><thead><tr><th scope="col">측정값</th><th scope="col">무개입</th><th scope="col">내 도로</th></tr></thead><tbody>
+          <div class="comparison-wrap"><table class="comparison"><caption>같은 시드·사건의 구간 비교</caption><thead><tr><th scope="col">측정값</th><th scope="col">무개입</th><th scope="col">내 도로</th></tr></thead><tbody>
             <tr><th scope="row">평균 속도 · km/h</th><td id="basespeed"></td><td id="trialspeed"></td></tr>
             <tr><th scope="row">평균 흐름 · 대/시간</th><td id="baseflow"></td><td id="trialflow"></td></tr>
             <tr><th scope="row">속도 편차 · km/h</th><td id="basespread"></td><td id="trialspread"></td></tr>
             <tr><th scope="row">느린 차량 · 평균 대수</th><td id="baseslow"></td><td id="trialslow"></td></tr>
+            <tr><th scope="row">검지기 통과 · 대</th><td id="basepasses"></td><td id="trialpasses"></td></tr>
+            <tr><th scope="row">검지기 처리량 · 대/시간</th><td id="basedetectorFlow"></td><td id="trialdetectorFlow"></td></tr>
+            <tr><th scope="row">정지 시간 · 대·초</th><td id="basestopped"></td><td id="trialstopped"></td></tr>
+            <tr><th scope="row">시간 손실 · 대·초</th><td id="baseloss"></td><td id="trialloss"></td></tr>
           </tbody></table></div>
-          <p id="detector" class="hint"></p><h3>개입 기록</h3><p id="policyLog" class="hint"></p>
-          <details><summary>속도와 흐름이 다른 이유 / 측정 규칙</summary><p>평균 속도는 차량의 km/h, 평균 흐름은 이동한 거리 합계 ÷ 1 km ÷ 측정 시간 × 3600입니다. 순환도로의 이동량을 대/시간으로 환산한 모델 값으로, 도로에서 빠져나간 차량 수가 아닙니다. 위쪽 노란 선은 시작점 검지기이며 누적 통과 대수는 별도로 표시합니다.</p><p>속도 편차는 매 0.05초 차량 속도의 표준편차를 구한 뒤 측정 구간에서 평균한 값입니다. 작을수록 대열의 속도가 고릅니다. 중간 검사는 직전 20초, 최종 목표는 종료 직전 60초로 판정합니다. 표의 느린 차량은 7.2 km/h 미만 차량 대수의 시간 평균입니다. 초반에는 채워진 구간만 표시하며 성공 판정은 종료 때 확정합니다.</p><p>시드는 출발 속도의 작은 차이와 제동 차량을 결정합니다. 사건은 같은 시각에 같은 차량 번호로 적용되지만, 개입 후 차량 위치는 달라질 수 있습니다. 제어는 실제 운전자 행동이나 도로 안전의 예측이 아닙니다.</p></details>
+          <p id="intervalFeedback" class="hint"></p><p id="detector" class="hint"></p><h3>개입 기록</h3><p id="policyLog" class="hint"></p>
+          <details><summary>측정 규칙</summary><p>흐름 = 이동 거리 합계 ÷ 1 km ÷ 구간 초 × 3600. 검지기 처리량 = 시작점 통과 대수 ÷ 구간 초 × 3600. 순환도로이므로 유출량은 없습니다.</p><p>정지 시간은 0.1 m/s 미만 차량의 시간 합계. 시간 손실은 매 0.05초 각 차량의 max(0, 1 − 관측 속도 / 도전의 원래 희망 속도) × 0.05초 합계입니다. 모두 같은 구간의 모델 관측값이며 현실의 인과 효과를 뜻하지 않습니다.</p><p>편차는 차량 속도 표준편차의 시간 평균. 중간 검사는 직전 20초, 최종 목표는 마지막 60초입니다. 초반 표는 진행된 구간만 집계합니다. 사건은 같은 시각·차량 번호에 적용되며 개입 후 위치는 달라질 수 있습니다.</p></details>
         </section>
       </section>
       <aside class="controls" aria-label="교통 실험 설정">
-        <p class="eyebrow">CONTROL ROOM</p>
         <section id="freeSettings" hidden><h2>도로의 조건</h2>
         <label for="count">차량 수 <output id="countOut">40대</output></label><input id="count" type="range" min="12" max="60" step="1" value="40">
         <label for="speed">희망 속도 <output id="speedOut">100 km/h</output></label><input id="speed" type="range" min="60" max="120" step="5" value="100">
         <label for="timeGap">목표 차간 시간 <output id="gapOut">1.4초</output></label><input id="timeGap" type="range" min=".7" max="2.5" step=".1" value="1.4">
-        <p class="hint">차간 시간을 늘리면 더 멀리 떨어지지만, 같은 도로에 많은 차량이 있을 때는 평균 속도도 달라집니다.</p>
         <div class="presets"><button id="free">여유로운 도로</button><button id="dense">붐비는 도로</button></div></section>
         <section class="policy-controls" aria-labelledby="policyTitle"><h2 id="policyTitle">한정된 개입</h2><p id="budget"></p>
-          <label for="policySpeed">희망 속도 상한</label><select id="policySpeed"><option value="60">60 km/h · 속도 억제</option><option value="80">80 km/h</option><option value="100">100 km/h</option><option value="120">120 km/h · 빠른 회복</option></select>
-          <label for="policyGap">목표 차간 시간</label><select id="policyGap"><option value=".7">0.7초 · 조밀한 대열</option><option value="1">1.0초</option><option value="1.3">1.3초</option><option value="1.8">1.8초</option><option value="2.2" selected>2.2초 · 여유 확보</option></select>
+          <label for="policySpeed">희망 속도</label><select id="policySpeed"><option value="60">60 km/h</option><option value="80">80 km/h</option><option value="100">100 km/h</option><option value="120">120 km/h</option></select>
+          <label for="policyGap">목표 차간 시간</label><select id="policyGap"><option value=".7">0.7초</option><option value="1">1.0초</option><option value="1.3">1.3초</option><option value="1.8">1.8초</option><option value="2.2" selected>2.2초</option></select>
           <label for="duration">개입 유지 시간</label><select id="duration"><option value="30">30초 · 1점</option><option value="60" selected>60초 · 2점</option></select>
           <button id="applyPolicy" class="brake">개입 적용</button><p id="activePolicy" class="hint"></p>
-          <p class="hint">희망 속도와 차간 시간을 함께 바꿉니다. 개입 중에는 교체할 수 없고 시간이 끝나면 원래 조건으로 복귀합니다. 목표 차간 시간은 모델의 운전자 반응 설정이며 실제 안전거리 권고가 아닙니다.</p>
+          <p class="hint">중첩 불가 · 만료 후 원래 조건 복귀 · 도전 종료 시 계산 정지.</p>
         </section>
         <div class="divider"></div>
-        <label for="pace">시간 배속</label><select id="pace"><option value="1">1× · 천천히 관찰</option><option value="4" selected>4× · 변화 살펴보기</option><option value="8">8× · 빠른 실험</option></select>
+        <label for="pace">시간 배속</label><select id="pace"><option value="1">1×</option><option value="4" selected>4×</option><option value="8">8×</option></select>
         <button id="brake" class="brake">선택 차량 급제동 · 자유 실험</button>
         <div class="actions"><button id="play">일시 정지</button><button id="reset">처음부터</button></div>
-        <button id="advance" class="advance">10초 진행 · 계획하며 관찰</button>
-        <p id="status" role="status">도전을 준비했습니다. 예산과 사건 일정을 보고 개입을 정한 뒤 재생 또는 10초 진행을 누르세요.</p>
+        <button id="advance" class="advance">10초 진행</button>
+        <section class="policy-store" aria-labelledby="storeTitle"><h2 id="storeTitle">정책 저장 <small id="savedCount"></small></h2>
+          <div class="actions"><button id="saveCurrent">현재 개입 저장</button><button id="exportCurrent">현재 개입 내보내기</button></div>
+          <label for="savedPolicies">저장 정책</label><select id="savedPolicies"></select>
+          <button id="replayPolicy" class="advance">선택 정책 재생</button>
+          <div class="actions"><button id="exportSaved">선택 내보내기</button><button id="deletePolicy">선택 삭제</button></div>
+          <label for="importPolicy">정책 가져오기 · JSON, 최대 4 KB</label><input id="importPolicy" type="file" accept=".json,application/json">
+          <button id="clearPolicies" class="advance">저장 정책·완료 기록 전체 삭제</button>
+          <p class="hint">이 기기에 최대 10개. 도전·시드·개입만 저장합니다. 재생은 같은 조건을 처음부터 계산하며 직접 완료로 집계하지 않습니다. 직접 성공한 정책은 자동 저장됩니다.</p>
+        </section>
+        <p id="status" role="status">도전 준비됨</p>
         <details><summary>이 실험이 계산하는 것</summary><p>IDM의 희망 속도·차간 거리·접근 속도를 이용한 단일 차로 모델입니다. 원형 도로에는 진입로와 신호등이 없습니다. 색은 각 차량의 속도입니다.</p><p><a href="https://traffic-simulation.de/info/info_IDM.html" target="_blank" rel="noopener noreferrer">IDM 모델 알아보기 ↗</a></p></details>
       </aside>
     </div>
   </main>
-  <footer>TRAFFIC LAB / 브라우저 안의 모델 실험 · 저장·업로드 없음 · 새로고침 시 초기화</footer>
+  <footer>기기 저장: 정책·직접 완료 / 갤러리 공유: 완료 개수만 · 서버 전송 없음</footer>
 </body></html>
