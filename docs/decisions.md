@@ -1,5 +1,14 @@
 # Decisions
 
+## D11 — Confirm durable policy effects and cancel pending imports on clear / 2026-10-13
+
+- Context: systematic edge-test expansion is explicitly authorized for this owned app; parent handles release. New executable tests reproduced 4 Node boundary failures and a delayed-import/clear browser failure.
+- Options: trust return without observing effects / ignore absent samples; redesign storage or scientific model; validate the existing boundary and retain original contracts.
+- Decision: Node E01–03 unconfirmed private/aggregate writes and clears reported success; E04 a sparse action array was silently skipped by map. Browser delayed File.text followed by clear repopulated deleted policies. Exact readback, dense iteration and import-generation invalidation fix these separate boundaries.
+- Rationale: failure reporting and input rejection must match the actual bounded state. No new schema, retention, achievement rule, backend, physics, stimulus or architecture is introduced.
+- Affected files: dist/src/storage.js, dist/src/progress.js, dist/src/policy.js, dist/src/app.js; test/edge-20261013.test.js; tools/browser-edge-20261013.mjs; docs/edge-cases-20261013.md; docs/verification.md; .gitignore (local evidence only).
+- Review: [matrix and exact commands](edge-cases-20261013.md). Clear and pagehide invalidate imports already waiting on File.text; a later deliberate new import is still permitted. Sparse arrays are direct model fixtures; JSON cannot encode holes. Storage readback is synchronous best effort, not atomic multi-tab isolation. Fixtures and local Chrome are distinguished from device/live evidence. Remote CI/live remain NOT_RUN; parent integrates/releases.
+
 ## D10 — 그래프 표본 시각의 누적 지연 제거 / 2026-10-13
 
 - Context: 0.05초 고정 계산에서 0.5초 간격 그래프 표본이 부동소수점 비교 때문에 추가 틱을 기다렸습니다. 120초 실행은 240표본이어야 하나 223개였고 표시 구간이 늘어날 수 있었습니다.

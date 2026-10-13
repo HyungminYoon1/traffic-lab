@@ -5,7 +5,7 @@ import {policyFromRun,parsePolicy,createReplay,advanceReplay,MAX_POLICY_BYTES} f
 import {readPolicies,savePolicy,deletePolicy,clearPolicies} from "./storage.js";
 const $=s=>document.querySelector(s),road=$("#road"),ctx=road.getContext("2d"),chart=$("#chart"),graph=chart.getContext("2d");
 let run=createChallenge(),world=run.world,selected=0,running=false,pace=4,last=0,accumulator=0;
-let replay=null,saved=[];
+let replay=null,saved=[],importGeneration=0;
 function deviceStorage(){try{return window.localStorage;}catch{throw new RangeError("기기 저장소를 사용할 수 없습니다");}}
 function refreshPolicies(){
   const list=$("#savedPolicies"),previous=list.value;list.replaceChildren();saved=[];
@@ -137,11 +137,13 @@ $("#replayPolicy").addEventListener("click",()=>guard(startReplay));
 $("#exportCurrent").addEventListener("click",()=>guard(()=>exportPolicy(policyFromRun(run))));
 $("#exportSaved").addEventListener("click",()=>guard(()=>exportPolicy(selectedPolicy())));
 $("#deletePolicy").addEventListener("click",()=>guard(()=>{const result=deletePolicy(deviceStorage(),Number($("#savedPolicies").value));refreshPolicies();announce(result.summaryWritten?"정책 삭제됨":"정책 삭제됨 · 완료 요약 갱신 불가");}));
-$("#clearPolicies").addEventListener("click",()=>guard(()=>{const ok=clearPolicies(deviceStorage());refreshPolicies();announce(ok?"저장 정책·완료 기록 삭제됨":"저장 정책 삭제됨 · 완료 요약 삭제 불가");}));
+$("#clearPolicies").addEventListener("click",()=>guard(()=>{importGeneration++;const ok=clearPolicies(deviceStorage());refreshPolicies();announce(ok?"저장 정책·완료 기록 삭제됨":"저장 정책 삭제됨 · 완료 요약 삭제 불가");}));
 $("#importPolicy").addEventListener("change",async e=>{
   const file=e.target.files[0];e.target.value="";if(!file)return;
-  try{if(file.size>MAX_POLICY_BYTES)throw new RangeError("정책 파일은 4 KB 이하입니다");const policy=parsePolicy(await file.text()),result=savePolicy(deviceStorage(),policy);refreshPolicies();$("#savedPolicies").value=saved.findIndex(entry=>JSON.stringify(entry.policy)===JSON.stringify(policy));announce(result.summaryWritten?"정책 가져옴":"정책 가져옴 · 완료 요약 갱신 불가");}catch{announce("가져오기 실패 · 형식·크기·예산·저장 공간을 확인하세요");}
+  const generation=importGeneration;
+  try{if(file.size>MAX_POLICY_BYTES)throw new RangeError("정책 파일은 4 KB 이하입니다");const text=await file.text();if(generation!==importGeneration)return;const policy=parsePolicy(text),result=savePolicy(deviceStorage(),policy);refreshPolicies();$("#savedPolicies").value=saved.findIndex(entry=>JSON.stringify(entry.policy)===JSON.stringify(policy));announce(result.summaryWritten?"정책 가져옴":"정책 가져옴 · 완료 요약 갱신 불가");}catch{if(generation===importGeneration)announce("가져오기 실패 · 형식·크기·예산·저장 공간을 확인하세요");}
 });
+window.addEventListener("pagehide",()=>{importGeneration++;});
 $("#brake").addEventListener("click",()=>brake());
 road.addEventListener("click",event=>{const p=canvasPointer(road,event),angle=(Math.atan2((p.y-310)/.76,p.x-460)+Math.PI/2+Math.PI*2)%(Math.PI*2),position=angle/(Math.PI*2)*LENGTH;
   let distance=Infinity,index=0;world.cars.forEach((c,i)=>{const d=Math.min(Math.abs(c.x-position),LENGTH-Math.abs(c.x-position));if(d<distance){distance=d;index=i;}});if(run){selected=index;sync();render();}else brake(index);});

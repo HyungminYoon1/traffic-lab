@@ -16,9 +16,9 @@ export function reportProgress(storage,completed,total) {
     if(!Number.isInteger(completed)||!Number.isInteger(total)||completed<0||completed>total||total>1000) return false;
     const value=read(storage);
     value.apps["traffic-lab"]={completed,total,updatedAt:new Date().toISOString()};
-    storage.setItem(PROGRESS_KEY,JSON.stringify(value));return true;
+    const raw=JSON.stringify(value);storage.setItem(PROGRESS_KEY,raw);return storage.getItem(PROGRESS_KEY)===raw;
   }catch{return false;}
 }
 export function clearProgress(storage) {
-  try{if(storage.getItem(PROGRESS_KEY)===null)return true;const value=read(storage);delete value.apps["traffic-lab"];storage.setItem(PROGRESS_KEY,JSON.stringify(value));return true;}catch{return false;}
+  try{if(storage.getItem(PROGRESS_KEY)===null)return true;const value=read(storage);delete value.apps["traffic-lab"];const raw=JSON.stringify(value);storage.setItem(PROGRESS_KEY,raw);return storage.getItem(PROGRESS_KEY)===raw;}catch{return false;}
 }

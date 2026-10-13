@@ -22,7 +22,9 @@ export function independentCount(entries) {
 }
 function write(storage,entries) {
   const completed=independentCount(entries);
-  storage.setItem(STORE_KEY,JSON.stringify({version:1,entries}));
+  const raw=JSON.stringify({version:1,entries});
+  storage.setItem(STORE_KEY,raw);
+  if(storage.getItem(STORE_KEY)!==raw)throw new RangeError("정책 저장을 확인할 수 없습니다");
   return {entries,completed,summaryWritten:completed?reportProgress(storage,completed,3):clearProgress(storage)};
 }
 export function savePolicy(storage,value,independent=false) {
@@ -41,5 +43,7 @@ export function deletePolicy(storage,index) {
   entries.splice(index,1);return write(storage,entries);
 }
 export function clearPolicies(storage) {
-  storage.removeItem(STORE_KEY);return clearProgress(storage);
+  storage.removeItem(STORE_KEY);
+  if(storage.getItem(STORE_KEY)!==null)throw new RangeError("정책 삭제를 확인할 수 없습니다");
+  return clearProgress(storage);
 }

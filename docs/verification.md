@@ -1,5 +1,7 @@
 # Verification
 
+[2026-10-13 systematic edge cases — new executable tests, red/green evidence, browser scope](edge-cases-20261013.md)
+
 ## 2026-10-13 그래프 간격·정책 비교 — LOCAL / BROWSER_LOCAL
 
 - Bug: 그래프 표본은 0.5초마다 생성해야 하나 실수 시각 비교가 밀려120초에223개였습니다. 추가 model regression을 수정 전 실패시킨 뒤1e-9초 시각 허용 오차로240개/모든0.5초 간격 복원. 차량 물리·idm-v1·목표·저장 형식 변경 없음.

@@ -12,7 +12,7 @@ export function validatePolicy(value) {
   const run=createChallenge(value.mission,value.seed);
   if(!Array.isArray(value.actions)||value.actions.length>MAX_ACTIONS) throw new RangeError("개입은 최대 6개입니다");
   let end=0,spent=0;
-  const actions=value.actions.map(a=>{
+  const actions=Array.from(value.actions,a=>{
     exactObject(a,["tick","speed","timeGap","duration"]);
     if(!Number.isInteger(a.tick)||a.tick<end||a.tick<0||a.tick>=run.mission.duration/DT) throw new RangeError("개입 시각·중첩·종료 범위 오류");
     const probe=createChallenge(value.mission,value.seed);
