@@ -1,5 +1,15 @@
 # Decisions
 
+## D10 — 그래프 표본 시각의 누적 지연 제거 / 2026-10-13
+
+- Context: 0.05초 고정 계산에서 0.5초 간격 그래프 표본이 부동소수점 비교 때문에 추가 틱을 기다렸습니다. 120초 실행은 240표본이어야 하나 223개였고 표시 구간이 늘어날 수 있었습니다.
+- Options: 모델 시간을 정수로 전면 변경; 그래프 축만 늘리기; 표본 비교에 고정 틱보다 작은 허용 오차 적용.
+- Decision: 표본 예정 시각 비교에 1e-9초 허용 오차를 추가합니다. 2400틱의 첫 표본 0.05초, 마지막 119.55초, 240개와 각 0.5초 간격을 독립 회귀로 확인합니다. 차량·개입·측정·판정은 변경하지 않습니다.
+- Rationale: 그래프만 의도한 간격으로 복원하며 idm-v1과 저장 정책의 결과를 그대로 재생할 수 있습니다.
+- Affected: dist/src/model.js, test/model.test.js, dist/index.html, tools/browser-audit-20261013.js, docs/verification.md.
+- Review: 회귀는 수정 전 223 != 240으로 실패했습니다. 기존 시드 4 세 도전의 실제 흐름·검지기·손실 수치 및 정책 재생 검증을 모두 유지합니다. 자유 실험에서도 같은 간격을 사용합니다.
+- Learning/provenance: 무개입/기존 실제 성공 경로/개입 한 변수 변경/정책 재생/다른 시드 반복 절차를 추가합니다. 비교 단위와 20초 중간 검사/60초 최종 표를 구분합니다. [IDM 원문](https://traffic-simulation.de/info/info_IDM.html)은 희망 속도·시간 간격 모델의 참고이며, 대표 경로/수치는 challenge/policy 테스트의 이 구현 결과입니다. 2026-10-13 원문 확인; 실도로 처방을 추가하지 않습니다.
+
 ## D01 — Static, independent implementation
 
 - Context: the user approved implementing all six proposed services and adding them to WEB LAB.

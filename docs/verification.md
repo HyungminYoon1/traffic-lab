@@ -1,5 +1,15 @@
 # Verification
 
+## 2026-10-13 그래프 간격·정책 비교 — LOCAL / BROWSER_LOCAL
+
+- Bug: 그래프 표본은 0.5초마다 생성해야 하나 실수 시각 비교가 밀려120초에223개였습니다. 추가 model regression을 수정 전 실패시킨 뒤1e-9초 시각 허용 오차로240개/모든0.5초 간격 복원. 차량 물리·idm-v1·목표·저장 형식 변경 없음.
+- Content/UI YES: 같은 시드 무개입→대표 실제 개입→한 변수 변경→정책 재생→다른 시드 반복과20초/60초 구간 구분 안내. Files: dist/src/model.js, test/model.test.js, dist/index.html, tools/browser-audit-20261013.js, docs/decisions.md, 이 문서.
+- Sources: 지정 디렉터리 inventory PARTIAL. architecture.md/README.md/decisions, model/challenge/policy/app/index, model/challenge/policy tests 및 check 전문 VERIFIED. 나머지 저장·CSS·과거 QA는 관련 부분 선별 및 전체 검사 실행. api-spec.md/requirements.md/저장소 AGENTS 없음. 전달 지침 적용; 다른 저장소/갤러리 수정 없음.
+- Node v22.23.2/npm11.12.0: `npm test` **40/40 PASS**, `npm run check` PASS (9public files). 기존 세 도전의 다중시드 물리/목표·정확 정책 재생·중간 실패·구간 독립 측정·기기 저장 검증 전체 유지. 시드4의 기존10개 측정량 regression도 유지됩니다.
+- Browser: isolated muted headless Chromium / main loopback /traffic-lab/, audit **15 assertions PASS**. 무개입 실패, 실제0초60km/h·2.2초·60초/120초60km/h·0.7초·60초 입력 성공. 최종 내/무개입 흐름2284/1603, 검지기42/10대, 정지0/1211대·초, 손실1737.9/2078.5대·초. 저장 정책 재생은 비교표 전체와 정확 일치; 직접완료1/3 유지, replay개입 잠김, reset0초/저장1개 유지, invalid seed 무변경. pageerror0.
+- Screenshots: 부모 `output/qa-20261013/traffic-lab/{desktop,mobile-390,mobile-320}.png`. 시드4직접 성공 종료/표/새 안내 펼침. selectors #comparison-experiment, .comparison, #trialflow, #trialpasses, #policyLog, #savedCount. 1440×1000/390×844/320×844 가로 넘침 없음.
+- Limits: 실도로·물리 터치·다른 브라우저·스크린리더·지원 WebMCP runtime은 NOT_RUN. provenance D10의 IDM원문/실제 model regression. REMOTE_CI/LIVE·갤러리 통합은 메인 담당; commit/push/deploy 없음.
+
 ## Scope
 
 traffic-lab: model source and focused tests, static asset/syntax checks, browser interaction, remote workflow and public site are separate evidence levels. Existing unrelated services remain outside this change.

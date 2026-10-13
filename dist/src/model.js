@@ -53,7 +53,7 @@ export function step(world,dt=DT) {
   });
   world.cars=next; world.time+=dt;
   if(world.brake&&world.time>=world.brake.until) world.brake=null;
-  if(world.time>=world.nextSample) {
+  if(world.time+1e-9>=world.nextSample) {
     world.history.push({time:world.time,...metrics(world)});
     if(world.history.length>240) world.history.shift();
     world.nextSample=world.time+.5;

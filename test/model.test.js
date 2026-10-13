@@ -6,3 +6,12 @@ test("braking lowers selected car speed and expires",()=>{const w=createWorld({c
 test("invalid controls and indices reject before mutation",()=>{for(const input of [{count:12.5},{speed:200},{speed:"100"},{timeGap:null},{count:NaN},{extra:1},null,[]])assert.throws(()=>parameters(input));const w=createWorld(),copy=structuredClone(w);assert.throws(()=>brakeCar(w,undefined));assert.throws(()=>brakeCar(w,100));for(const dt of [1,.1,"0.05",NaN]){assert.throws(()=>step(w,dt));assert.deepEqual(w,copy);}});
 test("zone validation rejects before mutation and clearing restores free road",()=>{const w=createWorld(),copy=structuredClone(w);for(const zone of [{start:500,end:400,speed:35},{start:-1,end:200,speed:35},{start:0,end:1200,speed:35},{start:0,end:100,speed:0},{start:NaN,end:100,speed:35},{start:0,end:100,speed:"35"}]){assert.throws(()=>setZone(w,zone));assert.deepEqual(w,copy);}setZone(w,{start:420,end:580,speed:35});assert.equal(w.zone.speed,35);setZone(w);assert.equal(w.zone,null);});
 test("same average speed at different density does not mean same flow",()=>{const a=createWorld({count:12}),b=createWorld({count:48});for(const w of [a,b])for(const c of w.cars)c.v=10;assert.equal(metrics(a).speed,36);assert.equal(metrics(b).speed,36);assert.equal(metrics(b).flow,4*metrics(a).flow);});
+
+test("speed chart samples every ten fixed steps without accumulated clock drift",()=>{
+  const w=createWorld({count:12});
+  for(let tick=1;tick<=2400;tick++)step(w);
+  assert.equal(w.history.length,240);
+  assert.ok(Math.abs(w.history[0].time-.05)<1e-9);
+  assert.ok(Math.abs(w.history.at(-1).time-119.55)<1e-9);
+  for(let i=1;i<w.history.length;i++)assert.ok(Math.abs(w.history[i].time-w.history[i-1].time-.5)<1e-9);
+});
